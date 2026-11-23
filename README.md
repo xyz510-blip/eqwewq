@@ -58,3 +58,4 @@ python opensearch.py web
 3. Daftarkan modul di `opensearch_lab/modules/__init__.py`.
 "# eqwewq" 
 "# eqwewq" 
+"# asu" 
