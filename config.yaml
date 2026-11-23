@@ -1,0 +1,27 @@
+# OpenSearch — Yuhan's LAB Default Configuration
+app:
+  name: "OpenSearch — Yuhan's LAB"
+  version: "1.0.0"
+
+timeouts:
+  http_seconds: 12
+  module_seconds: 90
+  maigret_seconds: 15
+  sherlock_seconds: 12
+
+scan:
+  maigret_top_sites: 80
+  enable_auto_pivot: true
+  max_pivot_depth: 1
+  max_concurrent_modules: 6
+  user_agent: "OpenSearch-YuhansLAB/1.0 (+OSINT Anti-Scam Research)"
+
+paths:
+  db_path: "data/opensearch.db"
+  reports_dir: "reports"
+  uploads_dir: "data/uploads"
+
+web:
+  host: "127.0.0.1"
+  port: 5000
+  max_upload_mb: 16

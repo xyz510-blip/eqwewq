@@ -57,3 +57,4 @@ python opensearch.py web
 2. Tentukan `name`, `display_name`, `supported_targets`, dan implementasikan `async def run(self, target, target_type, ctx) -> ModuleResult`.
 3. Daftarkan modul di `opensearch_lab/modules/__init__.py`.
 "# eqwewq" 
+"# eqwewq" 

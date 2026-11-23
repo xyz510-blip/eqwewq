@@ -1,0 +1,22 @@
+# Environment & Secrets
+.env
+*.env.local
+
+# Runtime Data & Reports
+data/
+reports/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

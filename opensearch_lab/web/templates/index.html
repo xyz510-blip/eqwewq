@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ app_name }} — OSINT & Anti-Scam Investigation</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-badge">OS</div>
+      <div>
+        <div class="brand-title">{{ app_name }}</div>
+        <div class="brand-sub">OSINT &amp; Anti-Scam Intelligence Platform v{{ version }}</div>
+      </div>
+    </div>
+    <nav class="nav-tabs" role="tablist">
+      <button class="tab-btn active" data-tab="investigate">Investigasi</button>
+      <button class="tab-btn" data-tab="text-analyzer">Analisis Chat / Ekstrak IOC</button>
+      <button class="tab-btn" data-tab="history">Riwayat Kasus</button>
+      <button class="tab-btn" data-tab="watchlist">Watchlist Penipu</button>
+      <button class="tab-btn" data-tab="modules">Modul &amp; API Keys</button>
+    </nav>
+  </header>
+
+  <main class="container">
+    <!-- TAB 1: INVESTIGATE -->
+    <section id="tab-investigate" class="tab-panel active">
+      <div class="card search-card">
+        <div class="search-header">
+          <div>
+            <h1>Lacak Target &amp; Indikasi Penipuan</h1>
+            <p class="muted">Gabungan Maigret, Sherlock, Shodan, DNS/TLS/RDAP, Anti-Phishing, Phone/Email/Crypto Intel &amp; EXIF Forensics.</p>
+          </div>
+          <span id="detect-pill" class="detect-pill">Auto-detect siap</span>
+        </div>
+
+        <form id="scan-form" class="scan-form">
+          <div class="input-row">
+            <input
+              id="query-input"
+              type="text"
+              placeholder="Masukkan username, No HP (0812...), email, link mencurigakan, domain, IP, wallet, atau nama..."
+              autocomplete="off"
+              required
+            >
+            <select id="type-select" title="Target Type">
+              <option value="auto">Auto Detect</option>
+              <option value="username">Username</option>
+              <option value="phone">No. Telepon / WA</option>
+              <option value="bank">Rekening Bank / E-Wallet</option>
+              <option value="email">Email</option>
+              <option value="url">URL / Link</option>
+              <option value="domain">Domain</option>
+              <option value="ip">IP Address</option>
+              <option value="crypto">Crypto Wallet</option>
+              <option value="name">Nama Lengkap</option>
+            </select>
+            <button id="scan-btn" type="submit" class="btn btn-primary">Mulai Investigasi</button>
+          </div>
+
+          <div class="options-row">
+            <label class="toggle">
+              <input id="fast-mode" type="checkbox">
+              <span>Fast Mode (lewati Maigret &amp; Sherlock yang lambat)</span>
+            </label>
+            <label class="toggle">
+              <input id="auto-pivot" type="checkbox" checked>
+              <span>Auto-Pivot (URL &rarr; Domain &rarr; IP/Shodan)</span>
+            </label>
+            <label class="toggle">
+              <input id="verify-profiles" type="checkbox" checked>
+              <span>Verifikasi Profil (Saring Soft-404)</span>
+            </label>
+            <label class="inline-num">
+              <span>Maigret Top Sites:</span>
+              <input id="maigret-top" type="number" value="80" min="10" max="500" step="10">
+            </label>
+            <button type="button" id="toggle-image-btn" class="btn btn-ghost btn-sm">Forensik Foto / Bukti Transfer</button>
+          </div>
+
+          <div class="demo-row">
+            <span class="muted">Contoh cepat:</span>
+            <button type="button" class="chip-btn" data-sample="http://hadiah-dana-resmi.xyz/login">Link Phishing DANA</button>
+            <button type="button" class="chip-btn" data-sample="https://www.bca.co.id">Domain Resmi BCA</button>
+            <button type="button" class="chip-btn" data-sample="081234567890">No. HP Indonesia</button>
+            <button type="button" class="chip-btn" data-sample="BCA 1234567890">Rekening Bank</button>
+            <button type="button" class="chip-btn" data-sample="cs.bri.official@gmail.com">Email Peniruan CS</button>
+            <button type="button" class="chip-btn" data-sample="1.1.1.1">IP (Shodan)</button>
+          </div>
+        </form>
+
+        <div id="image-upload-box" class="image-upload-box hidden">
+          <div class="upload-inner">
+            <div>
+              <strong>Unggah Foto Profil / Screenshot Bukti Transfer (.jpg, .png, .webp)</strong>
+              <p class="muted">Ekstrak metadata EXIF, deteksi editan Photoshop/Canva, koordinat GPS, &amp; hash SHA-256.</p>
+            </div>
+            <div class="upload-actions">
+              <input id="image-file-input" type="file" accept=".jpg,.jpeg,.png,.webp,.tif,.tiff,.bmp,.gif">
+              <button type="button" id="scan-image-btn" class="btn btn-accent">Analisis Gambar</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="loading-bar" class="loading-bar hidden">
+          <div class="spinner"></div>
+          <span id="loading-text">Menjalankan modul OSINT secara paralel...</span>
+        </div>
+        <div id="error-banner" class="alert-banner hidden"></div>
+      </div>
+
+      <!-- RESULTS DASHBOARD -->
+      <div id="results-area" class="hidden">
+        <div id="watchlist-alert" class="card watchlist-alert hidden"></div>
+
+        <div class="grid-overview">
+          <div class="card risk-card">
+            <div class="gauge-wrap">
+              <svg viewBox="0 0 120 120" class="risk-svg">
+                <circle cx="60" cy="60" r="52" class="gauge-bg"></circle>
+                <circle id="gauge-arc" cx="60" cy="60" r="52" class="gauge-arc"></circle>
+              </svg>
+              <div class="gauge-center">
+                <div id="risk-score-val" class="risk-num">0</div>
+                <div class="risk-max">/100</div>
+              </div>
+            </div>
+            <div class="risk-meta">
+              <div class="risk-top-row">
+                <span id="risk-level-badge" class="risk-badge">LOW</span>
+                <span id="case-id-badge" class="case-id-tag">CASE-...</span>
+              </div>
+              <h2 id="result-target-title">-</h2>
+              <p id="risk-summary-text" class="muted"></p>
+              <div class="overview-actions">
+                <button id="add-watchlist-btn" type="button" class="btn btn-danger btn-sm">+ Tandai ke Watchlist Penipu</button>
+                <span id="scan-stats-text" class="muted"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card export-card">
+            <h3>Ekspor Dossier &amp; Bukti</h3>
+            <p class="muted">Simpan laporan investigasi untuk dokumentasi atau pelaporan resmi.</p>
+            <div class="export-btns">
+              <button type="button" class="btn btn-ghost export-btn" data-fmt="html">HTML Report</button>
+              <button type="button" class="btn btn-ghost export-btn" data-fmt="pdf">PDF Dossier</button>
+              <button type="button" class="btn btn-ghost export-btn" data-fmt="md">Markdown</button>
+              <button type="button" class="btn btn-ghost export-btn" data-fmt="json">Raw JSON</button>
+              <button type="button" id="open-pyvis-btn" class="btn btn-primary">Buka PyVis Graph</button>
+            </div>
+            <div class="notes-box">
+              <label for="case-notes-input">Catatan Investigator</label>
+              <div class="notes-row">
+                <input id="case-notes-input" type="text" placeholder="Tulis catatan modus, rekening bank, atau kronologi...">
+                <button id="save-notes-btn" type="button" class="btn btn-accent btn-sm">Simpan</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="trust-signals-card" class="card trust-card hidden">
+          <h3>Sinyal Kepercayaan &amp; Legitimasi</h3>
+          <div id="trust-signals-list" class="signals-list"></div>
+        </div>
+
+        <div class="grid-two">
+          <div class="card">
+            <h3>Sinyal Red-Flag Penipuan</h3>
+            <div id="signals-list" class="signals-list"></div>
+          </div>
+          <div class="card">
+            <h3>Rekomendasi Pivot Investigasi</h3>
+            <p class="muted">Klik salah satu entitas temuan untuk melacak lebih dalam.</p>
+            <div id="pivots-list" class="pivots-list"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head-row">
+            <div>
+              <h3>Graf Hubungan Entitas</h3>
+              <span class="muted">Visualisasi keterkaitan target, akun sosmed, domain, IP, port, dan email.</span>
+            </div>
+            <div class="graph-legend">
+              <span class="leg"><i style="background:#ef4444"></i>Target</span>
+              <span class="leg"><i style="background:#06b6d4"></i>Profil</span>
+              <span class="leg"><i style="background:#a855f7"></i>Domain</span>
+              <span class="leg"><i style="background:#f97316"></i>IP</span>
+              <span class="leg"><i style="background:#10b981"></i>Email</span>
+              <span class="leg"><i style="background:#3b82f6"></i>Org</span>
+            </div>
+          </div>
+          <canvas id="entity-canvas" width="1040" height="360"></canvas>
+        </div>
+
+        <div class="card">
+          <div class="card-head-row">
+            <h3>Seluruh Temuan (<span id="findings-count">0</span>)</h3>
+            <div class="filter-controls">
+              <input id="finding-search" type="search" placeholder="Filter temuan...">
+              <div id="sev-filters" class="sev-filters">
+                <button type="button" class="sev-pill active" data-sev="all">ALL</button>
+                <button type="button" class="sev-pill" data-sev="critical">CRITICAL</button>
+                <button type="button" class="sev-pill" data-sev="high">HIGH</button>
+                <button type="button" class="sev-pill" data-sev="medium">MEDIUM</button>
+                <button type="button" class="sev-pill" data-sev="low">LOW</button>
+                <button type="button" class="sev-pill" data-sev="info">INFO</button>
+              </div>
+            </div>
+          </div>
+          <div id="findings-container" class="findings-table-wrap"></div>
+          <details id="fp-audit-details" class="fp-audit hidden">
+            <summary>False Positives Tersaring (<span id="fp-count">0</span>)</summary>
+            <div id="fp-list" class="muted" style="margin-top:8px;"></div>
+          </details>
+        </div>
+
+        <div class="card">
+          <h3>Status Eksekusi Modul</h3>
+          <div id="modules-run-grid" class="modules-run-grid"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 1.5: CHAT / IOC EXTRACTOR -->
+    <section id="tab-text-analyzer" class="tab-panel">
+      <div class="card">
+        <h2>Analisis Chat Penipu &amp; Ekstraktor Bukti (IOC)</h2>
+        <p class="muted">Tempel pesan WhatsApp, SMS, Telegram, atau DM mencurigakan untuk mendeteksi modus penipuan (.APK, DANA kaget, job scam, penipuan segitiga) dan mengekstrak seluruh tautan, nomor HP, rekening bank, serta crypto wallet secara otomatis.</p>
+        <form id="text-analyzer-form" class="text-analyzer-form">
+          <textarea id="scam-text-input" rows="5" placeholder="Tempel teks pesan atau chat terduga penipu di sini..."></textarea>
+          <div class="options-row">
+            <button type="submit" class="btn btn-primary">Analisis Pesan &amp; Ekstrak IOC</button>
+            <button type="button" id="sample-scam-text-btn" class="btn btn-ghost btn-sm">Muat Contoh Chat Penipu</button>
+          </div>
+        </form>
+      </div>
+      <div id="text-analysis-result" class="hidden">
+        <div class="grid-two">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <h3>Modus Penipuan Terdeteksi</h3>
+              <span id="text-risk-badge" class="risk-badge">LOW</span>
+            </div>
+            <div id="text-modi-list" class="signals-list"></div>
+            <div id="text-advice-list" class="muted" style="margin-top:10px;"></div>
+          </div>
+          <div class="card">
+            <h3>Bukti / IOC Terekstrak (<span id="text-ioc-count">0</span>)</h3>
+            <p class="muted">Klik <strong>Scan IOC</strong> untuk langsung menginvestigasi target secara penuh.</p>
+            <div id="text-iocs-list" class="pivots-list" style="margin-top:8px;"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: HISTORY -->
+    <section id="tab-history" class="tab-panel">
+      <div class="card">
+        <div class="card-head-row">
+          <div>
+            <h2>Riwayat Kasus Investigasi</h2>
+            <p class="muted">Semua hasil pemindaian tersimpan otomatis di SQLite lokal.</p>
+          </div>
+          <div class="search-inline">
+            <input id="history-search" type="search" placeholder="Cari target atau catatan...">
+            <button id="refresh-history-btn" type="button" class="btn btn-ghost btn-sm">Muat Ulang</button>
+          </div>
+        </div>
+        <div id="history-list" class="table-wrap"></div>
+      </div>
+    </section>
+
+    <!-- TAB 3: WATCHLIST -->
+    <section id="tab-watchlist" class="tab-panel">
+      <div class="card">
+        <h2>Watchlist Indikator Penipu Lokal</h2>
+        <p class="muted">Tambahkan nomor HP, username, email, domain, atau wallet penipu agar otomatis ditandai di setiap investigasi.</p>
+        <form id="watchlist-form" class="watchlist-form">
+          <input id="wl-indicator" type="text" placeholder="Indikator (mis. 0812..., penipu@mail.com, domain.xyz)" required>
+          <input id="wl-label" type="text" placeholder="Label (mis. Penipu Arisan / Phishing DANA)" value="Confirmed Scammer">
+          <input id="wl-reason" type="text" placeholder="Kronologi singkat / catatan...">
+          <button type="submit" class="btn btn-danger">Tambah ke Watchlist</button>
+        </form>
+        <div id="watchlist-table" class="table-wrap"></div>
+      </div>
+    </section>
+
+    <!-- TAB 4: MODULES -->
+    <section id="tab-modules" class="tab-panel">
+      <div class="card">
+        <h2>Status Modul OSINT &amp; API Keys</h2>
+        <p class="muted">Seluruh fitur inti bekerja tanpa API key. Tambahkan key opsional di file <code>.env</code> untuk pengayaan ekstra.</p>
+        <div id="api-keys-grid" class="api-keys-grid"></div>
+        <div id="modules-catalog-grid" class="modules-catalog-grid"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
